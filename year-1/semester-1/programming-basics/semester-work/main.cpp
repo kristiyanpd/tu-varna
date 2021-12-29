@@ -3,6 +3,7 @@
 #include <string>
 #include <algorithm>
 #include <vector>
+#include <unordered_map>
 
 using namespace std;
 
@@ -82,6 +83,9 @@ int main() {
         printf("5. Извеждане на пътуванията с най-ранна дата на тръгване\n");
         printf("6. Извеждане на пътуванията към определена дестинация\n");
         printf("7. Корекция на данни за пътуване\n");
+        printf("8. Извеждане на пътуване на най-ниска обща цена\n");
+        printf("9. Извеждане на пътуване с най-много пътници\n");
+        printf("10. Извеждане на кораб с най-много круизи\n");
         printf("Избрана опция: ");
 
         cin >> selected;
@@ -108,6 +112,15 @@ int main() {
                 break;
             case 7:
                 editCruise(cruises, currentCruisesCount, currentDate);
+                break;
+            case 8:
+                filterCruises(cruises, currentCruisesCount, "minPrice");
+                break;
+            case 9:
+                filterCruises(cruises, currentCruisesCount, "maxPassengers");
+                break;
+            case 10:
+                filterCruises(cruises, currentCruisesCount, "maxCruisesShip");
                 break;
             default:
                 printf("Невалидна опция!\n");
@@ -259,9 +272,9 @@ void editCruise(Cruise cruises[], int &currentCruisesCount, Date current) {
     printf("Искате ли да редактирате името на кораба? [y/n] ");
     cin >> answer;
     if (answer == 'y') {
+        cin.ignore();
         do {
             printf("Въведи ново име на кораба: ");
-            cin.ignore();
             getline(cin, cruises[cruise].ship.name);
         } while (cruises[cruise].ship.name[0] == '\0');
     }
@@ -269,9 +282,9 @@ void editCruise(Cruise cruises[], int &currentCruisesCount, Date current) {
     printf("Искате ли да редактирате името на капитана на кораба? [y/n] ");
     cin >> answer;
     if (answer == 'y') {
+        cin.ignore();
         do {
             printf("Въведи ново име на капитана на кораба: ");
-            cin.ignore();
             getline(cin, cruises[cruise].ship.captainName);
         } while (cruises[cruise].ship.captainName[0] == '\0');
     }
@@ -367,6 +380,48 @@ void filterCruises(Cruise cruises[], int &currentCruisesCount, const string &cri
                 }
             }
         }
+    } else if (criteria == "minPrice") {
+        printf("======{ КРУИЗ С НАЙ-НИСКА ОБЩА ЦЕНА }======\n");
+        float minPrice = cruises[0].ship.firstClass.price + cruises[0].ship.secondClass.price;
+        int cruiseId = 0;
+        for (int i = 1; i < currentCruisesCount; i++) {
+            Cruise current = cruises[i];
+            float calculatedPrice = current.ship.firstClass.price + current.ship.secondClass.price;
+            if (calculatedPrice < minPrice) {
+                minPrice = calculatedPrice;
+                cruiseId = i;
+            }
+        }
+        printCruise(cruises, currentCruisesCount, cruiseId);
+    } else if (criteria == "maxPassengers") {
+        printf("======{ КРУИЗ С НАЙ-МНОГО ПЪТНИЦИ }======\n");
+        int passengersCount = cruises[0].ship.firstClass.passengers + cruises[0].ship.secondClass.passengers;
+        int cruiseId = 0;
+        for (int i = 1; i < currentCruisesCount; i++) {
+            Cruise current = cruises[i];
+            int passengers = current.ship.firstClass.passengers + current.ship.secondClass.passengers;
+            if (passengers > passengersCount) {
+                passengersCount = passengers;
+                cruiseId = i;
+            }
+        }
+        printCruise(cruises, currentCruisesCount, cruiseId);
+    } else if (criteria == "maxCruisesShip") {
+        printf("======{ НАЙ-МНОГО КРУИЗИ }======\n");
+        unordered_map<string, int> shipCruisesCount;
+        for (int i = 0; i < currentCruisesCount; i++) {
+            shipCruisesCount[cruises[i].ship.name] += 1;
+        }
+
+        string shipName = to_string(shipCruisesCount.at(cruises[0].ship.name));
+        int maxOccurrences = shipCruisesCount[shipName];
+        for (const auto &pair: shipCruisesCount) {
+            if (pair.second > maxOccurrences) {
+                shipName = pair.first;
+                maxOccurrences = pair.second;
+            }
+        }
+        printf("Корабът \"%s\" е използван най-много!\n", shipName.c_str());
     }
 }
 
@@ -375,17 +430,17 @@ void fillTestData(Cruise cruises[], int &currentCruisesCount) {
     vector<string> route2{"Варна", "Рим", "Ню Йорк", "Флорида", "Лос Анджелис", "Варна"};
     vector<string> route3{"Пекин", "Токио", "Пхенян", "Пекин"};
     vector<string> route4{"Бриджтаун", "Розо", "Тортола", "Сейнт Джоунс", "Сен Маартен", "Бриджтаун"};
-    cruises[currentCruisesCount++] = {route1,
-                                      {"Symphony of the Seas", "Rob Hempstead", {2499.99, 1500}, {1499.99, 3500}},
-                                      {14, 2, 2021}, {14, 3, 2022}};
-    cruises[currentCruisesCount++] = {route2,
-                                      {"Harmony of the Seas", "Johnny Faevelen", {2249.99, 1400}, {1249.99, 3000}},
-                                      {7, 1, 2022}, {14, 1, 2022}};
-    cruises[currentCruisesCount++] = {route3,
-                                      {"Oasis of the Seas", "Thore Thorolvsen", {1999.99, 1000}, {999.99, 2500}},
-                                      {5, 8, 2022}, {15, 8, 2022}};
-    cruises[currentCruisesCount++] = {route4, {"Allure of the Seas", "Hernan Zini", {1749.99, 900}, {749.99, 2100}},
-                                      {3, 3, 2022}, {10, 3, 2022}};
+
+    Ship symphonyOfTheSeas{"Symphony of the Seas", "Rob Hempstead", {2499.99, 1500}, {1499.99, 3500}};
+    Ship harmonyOfTheSeas{"Harmony of the Seas", "Johnny Faevelen", {2249.99, 1400}, {1249.99, 3000}};
+    Ship oasisOfTheSeas{"Oasis of the Seas", "Thore Thorolvsen", {1999.99, 1000}, {999.99, 2500}};
+    Ship allureOfTheSeas{"Allure of the Seas", "Hernan Zini", {1749.99, 900}, {749.99, 2100}};
+
+    cruises[currentCruisesCount++] = {route1, symphonyOfTheSeas, {14, 2, 2021}, {14, 3, 2022}};
+    cruises[currentCruisesCount++] = {route2, harmonyOfTheSeas, {7, 1, 2022}, {14, 1, 2022}};
+    cruises[currentCruisesCount++] = {route3, oasisOfTheSeas, {5, 8, 2022}, {15, 8, 2022}};
+    cruises[currentCruisesCount++] = {route4, allureOfTheSeas, {3, 3, 2022}, {10, 3, 2022}};
+    cruises[currentCruisesCount++] = {route2, allureOfTheSeas, {5, 7, 2022}, {10, 7, 2022}};
 }
 
 bool cruisesExist(int &currentCruisesCount) {
