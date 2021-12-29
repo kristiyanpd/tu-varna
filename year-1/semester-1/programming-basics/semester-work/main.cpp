@@ -40,6 +40,8 @@ int addCruise(Cruise cruises[], int &currentCruisesCount);
 
 void addCruises(Cruise cruises[], int &currentCruisesCount);
 
+void editCruise(Cruise cruises[], int &currentCruisesCount);
+
 bool compareDates(const Date &date1, const Date &date2);
 
 void printFoundCruise(Cruise cruises[], int &currentCruisesCount);
@@ -92,6 +94,9 @@ int main() {
                 break;
             case 6:
                 filterCruises(cruises, currentCruisesCount, "destination");
+                break;
+            case 7:
+                editCruise(cruises, currentCruisesCount);
                 break;
             default:
                 printf("Невалидна опция!\n");
@@ -197,6 +202,75 @@ void addCruises(Cruise cruises[], int &currentCruisesCount) {
 
     for (int i = 0; i < count; i++) {
         if (addCruise(cruises, currentCruisesCount) == 1) break;
+    }
+}
+
+void editCruise(Cruise cruises[], int &currentCruisesCount) {
+    if (!cruisesExist(currentCruisesCount)) return;
+
+    int cruise;
+    printf("Въведи номер на круиз: ");
+    cin >> cruise;
+
+    if (!cruiseExists(currentCruisesCount, cruise)) return;
+
+    printf("============{ РЕДАКЦИЯ НА КРУИЗ %d }============\n", cruise);
+    char answer;
+
+    printf("Искате ли да редактирате датата на потегляне? [y/n] ");
+    cin >> answer;
+    if (answer == 'y') {
+        printf("Въведи дата потегляне [формат: 01.01.2022]: ");
+        string startDate;
+        cin >> startDate;
+        cruises[cruise].startDate.day = stoi(startDate.substr(0, 2));
+        cruises[cruise].startDate.month = stoi(startDate.substr(3, 2));
+        cruises[cruise].startDate.year = stoi(startDate.substr(6, 4));
+    }
+
+    printf("Искате ли да редактирате датата на връщане? [y/n] ");
+    cin >> answer;
+    if (answer == 'y') {
+        printf("Въведи нова дата връщане [формат: 01.01.2022]: ");
+        string endDate;
+        cin >> endDate;
+        cruises[cruise].startDate.day = stoi(endDate.substr(0, 2));
+        cruises[cruise].startDate.month = stoi(endDate.substr(3, 2));
+        cruises[cruise].startDate.year = stoi(endDate.substr(6, 4));
+    }
+
+    printf("Искате ли да редактирате името на кораба? [y/n] ");
+    cin >> answer;
+    if (answer == 'y') {
+        printf("Въведи ново име на кораба: ");
+        cin.ignore();
+        getline(cin, cruises[cruise].ship.name);
+    }
+
+    printf("Искате ли да редактирате името на капитана на кораба? [y/n] ");
+    cin >> answer;
+    if (answer == 'y') {
+        printf("Въведи ново име на капитана на кораба: ");
+        cin.ignore();
+        getline(cin, cruises[cruise].ship.captainName);
+    }
+
+    printf("Искате ли да редактирате първа класа? [y/n] ");
+    cin >> answer;
+    if (answer == 'y') {
+        printf("Въведи нова цена: ");
+        cin >> cruises[cruise].ship.firstClass.price;
+        printf("Въведи нов брой пътници: ");
+        cin >> cruises[cruise].ship.firstClass.passengers;
+    }
+
+    printf("Искате ли да редактирате втора класа? [y/n] ");
+    cin >> answer;
+    if (answer == 'y') {
+        printf("Въведи нова цена: ");
+        cin >> cruises[cruise].ship.secondClass.price;
+        printf("Въведи нов брой пътници: ");
+        cin >> cruises[cruise].ship.secondClass.passengers;
     }
 }
 
