@@ -40,7 +40,7 @@ int addCruise(Cruise cruises[], int &currentCruisesCount);
 
 void addCruises(Cruise cruises[], int &currentCruisesCount);
 
-void editCruise(Cruise cruises[], int &currentCruisesCount);
+void editCruise(Cruise cruises[], int &currentCruisesCount, Date current);
 
 bool compareDates(const Date &date1, const Date &date2);
 
@@ -52,10 +52,20 @@ void printCruise(Cruise cruises[], int &currentCruisesCount, int cruise);
 
 void fillTestData(Cruise cruises[], int &currentCruisesCount);
 
+bool cruisesExist(int &currentCruisesCount);
+
+bool cruiseExists(int &currentCruisesCount, int &cruise);
+
+void getCurrentDate(int &day, int &month, int &year);
+
 int main() {
     setlocale(LC_ALL, "BG");
     SetConsoleOutputCP(1251);
     SetConsoleCP(1251);
+
+    // Get current time
+    Date currentDate{};
+    getCurrentDate(currentDate.day, currentDate.month, currentDate.year);
 
     int currentCruisesCount = 0;
     Cruise cruises[MAX_CRUISES];
@@ -71,6 +81,7 @@ int main() {
         printf("4. Показване на информация за кораб\n");
         printf("5. Извеждане на пътуванията с най-ранна дата на тръгване\n");
         printf("6. Извеждане на пътуванията към определена дестинация\n");
+        printf("7. Корекция на данни за пътуване\n");
         printf("Избрана опция: ");
 
         cin >> selected;
@@ -96,7 +107,7 @@ int main() {
                 filterCruises(cruises, currentCruisesCount, "destination");
                 break;
             case 7:
-                editCruise(cruises, currentCruisesCount);
+                editCruise(cruises, currentCruisesCount, currentDate);
                 break;
             default:
                 printf("Невалидна опция!\n");
@@ -205,7 +216,7 @@ void addCruises(Cruise cruises[], int &currentCruisesCount) {
     }
 }
 
-void editCruise(Cruise cruises[], int &currentCruisesCount) {
+void editCruise(Cruise cruises[], int &currentCruisesCount, Date current) {
     if (!cruisesExist(currentCruisesCount)) return;
 
     int cruise;
@@ -213,6 +224,12 @@ void editCruise(Cruise cruises[], int &currentCruisesCount) {
     cin >> cruise;
 
     if (!cruiseExists(currentCruisesCount, cruise)) return;
+
+    if (compareDates(cruises[cruise].startDate, current)) {
+        printf("==============================================\n");
+        printf("Не можете да редактирате минал круиз!\n");
+        return;
+    }
 
     printf("============{ РЕДАКЦИЯ НА КРУИЗ %d }============\n", cruise);
     char answer;
@@ -242,17 +259,21 @@ void editCruise(Cruise cruises[], int &currentCruisesCount) {
     printf("Искате ли да редактирате името на кораба? [y/n] ");
     cin >> answer;
     if (answer == 'y') {
-        printf("Въведи ново име на кораба: ");
-        cin.ignore();
-        getline(cin, cruises[cruise].ship.name);
+        do {
+            printf("Въведи ново име на кораба: ");
+            cin.ignore();
+            getline(cin, cruises[cruise].ship.name);
+        } while (cruises[cruise].ship.name[0] == '\0');
     }
 
     printf("Искате ли да редактирате името на капитана на кораба? [y/n] ");
     cin >> answer;
     if (answer == 'y') {
-        printf("Въведи ново име на капитана на кораба: ");
-        cin.ignore();
-        getline(cin, cruises[cruise].ship.captainName);
+        do {
+            printf("Въведи ново име на капитана на кораба: ");
+            cin.ignore();
+            getline(cin, cruises[cruise].ship.captainName);
+        } while (cruises[cruise].ship.captainName[0] == '\0');
     }
 
     printf("Искате ли да редактирате първа класа? [y/n] ");
@@ -286,21 +307,19 @@ bool compareDates(const Date &date1, const Date &date2) {
 }
 
 void printFoundCruise(Cruise cruises[], int &currentCruisesCount) {
+    if (!cruisesExist(currentCruisesCount)) return;
+
     int cruise;
     printf("Въведи номер на круиз: ");
     cin >> cruise;
 
-    if (cruise > currentCruisesCount || cruise < 1) {
-        printf("==============================================\n");
-        printf("Няма такъв круиз!\n");
-        return;
-    }
+    if (!cruiseExists(currentCruisesCount, cruise)) return;
 
     printCruise(cruises, currentCruisesCount, cruise);
 }
 
 void printCruise(Cruise cruises[], int &currentCruisesCount, int cruise) {
-    Cruise current = cruises[cruise - 1];
+    Cruise current = cruises[cruise];
     printf("============{ КРУИЗ %d }============\n", cruise);
     printf("Маршрут: ");
     int routeSize = (int) current.route.size();
@@ -318,11 +337,7 @@ void printCruise(Cruise cruises[], int &currentCruisesCount, int cruise) {
 }
 
 void filterCruises(Cruise cruises[], int &currentCruisesCount, const string &criteria) {
-    if (currentCruisesCount < 1) {
-        printf("==============================================\n");
-        printf("Няма въведени круизи!\n");
-        return;
-    }
+    if (!cruisesExist(currentCruisesCount)) return;
 
     if (criteria == "startDate") {
         printf("======{ НАЙ-СКОРОШНИ КРУИЗИ }======\n");
@@ -360,8 +375,45 @@ void fillTestData(Cruise cruises[], int &currentCruisesCount) {
     vector<string> route2{"Варна", "Рим", "Ню Йорк", "Флорида", "Лос Анджелис", "Варна"};
     vector<string> route3{"Пекин", "Токио", "Пхенян", "Пекин"};
     vector<string> route4{"Бриджтаун", "Розо", "Тортола", "Сейнт Джоунс", "Сен Маартен", "Бриджтаун"};
-    cruises[currentCruisesCount++] = {route1, {"Symphony of the Seas", "Rob Hempstead", {2499.99, 1500}, {1499.99, 3500}}, {14, 2, 2022}, {14, 3, 2022}};
-    cruises[currentCruisesCount++] = {route2, {"Harmony of the Seas", "Johnny Faevelen", {2249.99, 1400}, {1249.99, 3000}}, {7, 1, 2022}, {14, 1, 2022}};
-    cruises[currentCruisesCount++] = {route3, {"Oasis of the Seas", "Thore Thorolvsen", {1999.99, 1000}, {999.99, 2500}}, {5, 8, 2022}, {15, 8, 2022}};
-    cruises[currentCruisesCount++] = {route4, {"Allure of the Seas", "Hernan Zini", {1749.99, 900}, {749.99, 2100}}, {3, 3, 2022}, {10, 3, 2022}};
+    cruises[currentCruisesCount++] = {route1,
+                                      {"Symphony of the Seas", "Rob Hempstead", {2499.99, 1500}, {1499.99, 3500}},
+                                      {14, 2, 2021}, {14, 3, 2022}};
+    cruises[currentCruisesCount++] = {route2,
+                                      {"Harmony of the Seas", "Johnny Faevelen", {2249.99, 1400}, {1249.99, 3000}},
+                                      {7, 1, 2022}, {14, 1, 2022}};
+    cruises[currentCruisesCount++] = {route3,
+                                      {"Oasis of the Seas", "Thore Thorolvsen", {1999.99, 1000}, {999.99, 2500}},
+                                      {5, 8, 2022}, {15, 8, 2022}};
+    cruises[currentCruisesCount++] = {route4, {"Allure of the Seas", "Hernan Zini", {1749.99, 900}, {749.99, 2100}},
+                                      {3, 3, 2022}, {10, 3, 2022}};
+}
+
+bool cruisesExist(int &currentCruisesCount) {
+    if (currentCruisesCount < 1) {
+        printf("==============================================\n");
+        printf("Няма въведени круизи!\n");
+        return false;
+    }
+    return true;
+}
+
+bool cruiseExists(int &currentCruisesCount, int &cruise) {
+    if (cruise >= currentCruisesCount || cruise < 0) {
+        printf("==============================================\n");
+        printf("Няма такъв круиз!\n");
+        return false;
+    }
+    return true;
+}
+
+void getCurrentDate(int &day, int &month, int &year) {
+    time_t currentTime;
+    struct tm *localTime;
+
+    time(&currentTime);
+    localTime = localtime(&currentTime);
+
+    day = localTime->tm_mday;
+    month = localTime->tm_mon + 1;
+    year = localTime->tm_year + 1900;
 }
