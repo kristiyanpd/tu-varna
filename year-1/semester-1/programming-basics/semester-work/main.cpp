@@ -7,7 +7,6 @@
 
 using namespace std;
 
-
 /////////// Structures ///////////
 struct Date {
     int day, month, year;
@@ -43,13 +42,20 @@ void addCruises(Cruise cruises[], int &currentCruisesCount);
 
 void editCruise(Cruise cruises[], int &currentCruisesCount, Date current);
 
-bool compareDates(const Date &date1, const Date &date2);
+void printCruise(Cruise cruises[], int &currentCruisesCount, int cruise);
 
 void printFoundCruise(Cruise cruises[], int &currentCruisesCount);
 
+void printAllCruises(Cruise cruises[], int &currentCruisesCount);
+
 void filterCruises(Cruise cruises[], int &currentCruisesCount, const string &criteria);
 
-void printCruise(Cruise cruises[], int &currentCruisesCount, int cruise);
+void sortCruises(Cruise cruises[], int &currentCruisesCount, const string &criteria);
+
+void sortAlgorithm(Cruise cruises[], int &currentCruisesCount, const string &criteria);
+
+/////////// Helper Methods ///////////
+void getCurrentDate(int &day, int &month, int &year);
 
 void fillTestData(Cruise cruises[], int &currentCruisesCount);
 
@@ -57,7 +63,13 @@ bool cruisesExist(int &currentCruisesCount);
 
 bool cruiseExists(int &currentCruisesCount, int &cruise);
 
-void getCurrentDate(int &day, int &month, int &year);
+int compareDates(const Date &date1, const Date &date2);
+
+int compareNames(string &str1, string &str2);
+
+bool periodCheck(Date start, Date end, const Cruise &cruise);
+
+Date inputDate(string &dateInput);
 
 int main() {
     setlocale(LC_ALL, "BG");
@@ -75,17 +87,18 @@ int main() {
     do {
         printf("==============================================\n");
         printf("Избери една от следните опции: \n");
-        printf("0. Излез от менюто\n");
-        printf("1. Въвеждане на тестови круизи\n");
-        printf("2. Добавяне на едно ново морско пътуване\n");
-        printf("3. Добавяне на списък от пътувания\n");
-        printf("4. Показване на информация за кораб\n");
-        printf("5. Извеждане на пътуванията с най-ранна дата на тръгване\n");
-        printf("6. Извеждане на пътуванията към определена дестинация\n");
-        printf("7. Корекция на данни за пътуване\n");
-        printf("8. Извеждане на пътуване на най-ниска обща цена\n");
-        printf("9. Извеждане на пътуване с най-много пътници\n");
-        printf("10. Извеждане на кораб с най-много круизи\n");
+        printf("0. Излез от менюто.\n");
+        printf("1. Въвеждане на тестови круизи.\n");
+        printf("2. Добавяне на едно ново морско пътуване.\n");
+        printf("3. Добавяне на списък от пътувания.\n");
+        printf("4. Показване на информация за кораб.\n");
+        printf("5. Извеждане на пътуванията с най-ранна дата на тръгване.\n");
+        printf("6. Извеждане на пътуванията към определена дестинация.\n");
+        printf("7. Корекция на данни за пътуване.\n");
+        printf("8. Извеждане на пътуване на най-ниска обща цена.\n");
+        printf("9. Извеждане на пътуване с най-много пътници.\n");
+        printf("10. Извеждане на кораб с най-много круизи.\n");
+        printf("11. Одит на морските пътувания.\n");
         printf("Избрана опция: ");
 
         cin >> selected;
@@ -122,6 +135,34 @@ int main() {
             case 10:
                 filterCruises(cruises, currentCruisesCount, "maxCruisesShip");
                 break;
+            case 11:
+                int selectedSubmenu;
+                do {
+                    printf("============{ ОДИТ НА КРУИЗИТЕ }============\n");
+                    printf("0. Излез от подменюто.\n");
+                    printf("1. Извеждане на пътувания, сортирани по име на кораб.\n");
+                    printf("2. Извеждане на пътувания за период, сортирани по ден на тръгване.\n");
+                    printf("3. Извеждане на пътувания по дестинация и ден на тръгване, сортирани по ден на тръгване.\n");
+                    printf("Избрана опция: ");
+
+                    cin >> selectedSubmenu;
+                    switch (selectedSubmenu) {
+                        case 0:
+                            break;
+                        case 1:
+                            sortCruises(cruises, currentCruisesCount, "shipName");
+                            break;
+                        case 2:
+                            filterCruises(cruises, currentCruisesCount, "period");
+                            break;
+                        case 3:
+                            filterCruises(cruises, currentCruisesCount, "destinationAndStartDate");
+                            break;
+                        default:
+                            printf("Невалидна опция!\n");
+                    }
+                } while (selectedSubmenu != 0);
+                break;
             default:
                 printf("Невалидна опция!\n");
         }
@@ -134,7 +175,6 @@ int addCruise(Cruise cruises[], int &currentCruisesCount) {
         printf("Достигнат е максималният брой от круизи!\n");
         return 1;
     }
-
 
     printf("============{ ДОБАВЯНЕ НА КРУИЗ %d }============\n", currentCruisesCount + 1);
 
@@ -161,28 +201,19 @@ int addCruise(Cruise cruises[], int &currentCruisesCount) {
         }
     }
 
-    //TODO Валидации на датите
-    // method validateDate
-    // ДНИ 0 / 31
-    // МЕСЕЦИ  > 0 && < 13
-    // ГОДИНА В БЪДЕЩЕТО
     printf("==={ ВЪВЕЖДАНЕ НА ПЕРИОД ПЪТУВАНЕ }===\n");
 
     // Въвеждане на дата потегляне
     printf("Въведи дата потегляне [формат: 01.01.2022]: ");
     string startDate;
     cin >> startDate;
-    cruises[currentCruisesCount].startDate.day = stoi(startDate.substr(0, 2));
-    cruises[currentCruisesCount].startDate.month = stoi(startDate.substr(3, 2));
-    cruises[currentCruisesCount].startDate.year = stoi(startDate.substr(6, 4));
+    cruises[currentCruisesCount].startDate = inputDate(startDate);
 
     // Въвеждане на дата връщане
     printf("Въведи дата връщане   [формат: 01.01.2022]: ");
     string endDate;
     cin >> endDate;
-    cruises[currentCruisesCount].endDate.day = stoi(endDate.substr(0, 2));
-    cruises[currentCruisesCount].endDate.month = stoi(endDate.substr(3, 2));
-    cruises[currentCruisesCount].endDate.year = stoi(endDate.substr(6, 4));
+    cruises[currentCruisesCount].endDate = inputDate(endDate);
 
     printf("==={ ВЪВЕЖДАНЕ НА ИНФОРМАЦИЯ ЗА КОРАБА }===\n");
 
@@ -212,7 +243,7 @@ int addCruise(Cruise cruises[], int &currentCruisesCount) {
     cin >> cruises[currentCruisesCount].ship.secondClass.passengers;
 
     // Завършване на добавянето
-    printf("============{ УСПЕШНО ДОБАВЯНЕ НА КРУИЗ %d }============\n", currentCruisesCount + 1);
+    printf("============{ УСПЕШНО ДОБАВЯНЕ НА КРУИЗ %d }============\n", currentCruisesCount);
     currentCruisesCount++;
 
     return 0;
@@ -238,7 +269,7 @@ void editCruise(Cruise cruises[], int &currentCruisesCount, Date current) {
 
     if (!cruiseExists(currentCruisesCount, cruise)) return;
 
-    if (compareDates(cruises[cruise].startDate, current)) {
+    if (compareDates(cruises[cruise].startDate, current) > 0) {
         printf("==============================================\n");
         printf("Не можете да редактирате минал круиз!\n");
         return;
@@ -253,9 +284,7 @@ void editCruise(Cruise cruises[], int &currentCruisesCount, Date current) {
         printf("Въведи дата потегляне [формат: 01.01.2022]: ");
         string startDate;
         cin >> startDate;
-        cruises[cruise].startDate.day = stoi(startDate.substr(0, 2));
-        cruises[cruise].startDate.month = stoi(startDate.substr(3, 2));
-        cruises[cruise].startDate.year = stoi(startDate.substr(6, 4));
+        cruises[currentCruisesCount].startDate = inputDate(startDate);
     }
 
     printf("Искате ли да редактирате датата на връщане? [y/n] ");
@@ -264,9 +293,7 @@ void editCruise(Cruise cruises[], int &currentCruisesCount, Date current) {
         printf("Въведи нова дата връщане [формат: 01.01.2022]: ");
         string endDate;
         cin >> endDate;
-        cruises[cruise].startDate.day = stoi(endDate.substr(0, 2));
-        cruises[cruise].startDate.month = stoi(endDate.substr(3, 2));
-        cruises[cruise].startDate.year = stoi(endDate.substr(6, 4));
+        cruises[currentCruisesCount].endDate = inputDate(endDate);
     }
 
     printf("Искате ли да редактирате името на кораба? [y/n] ");
@@ -308,29 +335,6 @@ void editCruise(Cruise cruises[], int &currentCruisesCount, Date current) {
     }
 }
 
-bool compareDates(const Date &date1, const Date &date2) {
-    if (date1.year < date2.year)
-        return true;
-    if (date1.year == date2.year && date1.month < date2.month)
-        return true;
-    if (date1.year == date2.year && date1.month == date2.month && date1.day < date2.day)
-        return true;
-
-    return false;
-}
-
-void printFoundCruise(Cruise cruises[], int &currentCruisesCount) {
-    if (!cruisesExist(currentCruisesCount)) return;
-
-    int cruise;
-    printf("Въведи номер на круиз: ");
-    cin >> cruise;
-
-    if (!cruiseExists(currentCruisesCount, cruise)) return;
-
-    printCruise(cruises, currentCruisesCount, cruise);
-}
-
 void printCruise(Cruise cruises[], int &currentCruisesCount, int cruise) {
     Cruise current = cruises[cruise];
     printf("============{ КРУИЗ %d }============\n", cruise);
@@ -347,6 +351,22 @@ void printCruise(Cruise cruises[], int &currentCruisesCount, int cruise) {
            current.ship.firstClass.passengers);
     printf("2-РА КЛАСА: \tЦЕНА: %g\t\tБРОЙ ПЪТНИЦИ: %d\n", current.ship.secondClass.price,
            current.ship.secondClass.passengers);
+}
+
+void printFoundCruise(Cruise cruises[], int &currentCruisesCount) {
+    if (!cruisesExist(currentCruisesCount)) return;
+
+    int cruise;
+    printf("Въведи номер на круиз: ");
+    cin >> cruise;
+
+    if (!cruiseExists(currentCruisesCount, cruise)) return;
+
+    printCruise(cruises, currentCruisesCount, cruise);
+}
+
+void printAllCruises(Cruise cruises[], int &currentCruisesCount) {
+    for (int i = 0; i < currentCruisesCount; i++) printCruise(cruises, currentCruisesCount, i);
 }
 
 void filterCruises(Cruise cruises[], int &currentCruisesCount, const string &criteria) {
@@ -413,7 +433,7 @@ void filterCruises(Cruise cruises[], int &currentCruisesCount, const string &cri
             shipCruisesCount[cruises[i].ship.name] += 1;
         }
 
-        string shipName = to_string(shipCruisesCount.at(cruises[0].ship.name));
+        string shipName = to_string(shipCruisesCount[cruises[0].ship.name]);
         int maxOccurrences = shipCruisesCount[shipName];
         for (const auto &pair: shipCruisesCount) {
             if (pair.second > maxOccurrences) {
@@ -422,7 +442,98 @@ void filterCruises(Cruise cruises[], int &currentCruisesCount, const string &cri
             }
         }
         printf("Корабът \"%s\" е използван най-много!\n", shipName.c_str());
+    } else if (criteria == "period") {
+        printf("======{ КРУИЗИ ПО ПЕРИОД }======\n");
+        string startDateStr, endDateStr;
+        printf("Въведи начална дата [01.01.2022]: ");
+        cin >> startDateStr;
+        Date startDate = inputDate(startDateStr);
+        printf("Въведи крайна дата [01.01.2022]: ");
+        cin >> endDateStr;
+        Date endDate = inputDate(endDateStr);
+        vector<Cruise> filtered;
+
+        for (int i = 0; i < currentCruisesCount; i++) {
+            if (periodCheck(startDate, endDate, cruises[i])) {
+                filtered.push_back(cruises[i]);
+            }
+        }
+        int size = (int) filtered.size();
+        Cruise *copy = &filtered[0];
+        sortCruises(copy, size, "startDate");
+    } else if (criteria == "destinationAndStartDate") {
+        printf("======{ КРУИЗИ ПО ДЕСТИНАЦИЯ И ДЕН НА ТРЪГВАНЕ }======\n");
+        string destination, startDateStr;
+        printf("Въведи дестинация: ");
+        cin >> destination;
+        printf("Въведи начална дата [01.01.2022]: ");
+        cin >> startDateStr;
+        Date startDate = inputDate(startDateStr);
+        vector<Cruise> filtered;
+
+        for (int i = 0; i < currentCruisesCount; i++) {
+            if (compareDates(startDate, cruises[i].startDate) == 0) {
+                for (int j = 0; j < cruises[i].route.size(); j++) {
+                    if (cruises[i].route[j] == destination) {
+                        filtered.push_back(cruises[i]);
+                        break;
+                    }
+                }
+            }
+        }
+        int size = (int) filtered.size();
+        Cruise *copy = &filtered[0];
+        sortCruises(copy, size, "startDate");
     }
+}
+
+void sortCruises(Cruise cruises[], int &currentCruisesCount, const string &criteria) {
+    if (!cruisesExist(currentCruisesCount)) return;
+
+    auto *copy = new Cruise[currentCruisesCount];
+    for (int i = 0; i < currentCruisesCount; i++) {
+        copy[i] = cruises[i];
+    }
+
+    sortAlgorithm(copy, currentCruisesCount, criteria);
+    printAllCruises(copy, currentCruisesCount);
+}
+
+void sortAlgorithm(Cruise cruises[], int &currentCruisesCount, const string &criteria) {
+    bool swapped;
+    for (int i = 0; i < currentCruisesCount - 1; i++) {
+        swapped = false;
+        for (int j = 0; j < currentCruisesCount - i - 1; j++) {
+            if (criteria == "shipName") {
+                if (compareNames(cruises[j].ship.name, cruises[j + 1].ship.name) == 1) {
+                    Cruise temp = cruises[j];
+                    cruises[j] = cruises[j + 1];
+                    cruises[j + 1] = temp;
+                    swapped = true;
+                }
+            } else if (criteria == "startDate") {
+                if (compareDates(cruises[j].startDate, cruises[j + 1].startDate) < 0) {
+                    Cruise temp = cruises[j];
+                    cruises[j] = cruises[j + 1];
+                    cruises[j + 1] = temp;
+                    swapped = true;
+                }
+            }
+        }
+        if (!swapped) break;
+    }
+}
+
+void getCurrentDate(int &day, int &month, int &year) {
+    time_t currentTime;
+    struct tm *localTime;
+
+    time(&currentTime);
+    localTime = localtime(&currentTime);
+
+    day = localTime->tm_mday;
+    month = localTime->tm_mon + 1;
+    year = localTime->tm_year + 1900;
 }
 
 void fillTestData(Cruise cruises[], int &currentCruisesCount) {
@@ -430,17 +541,21 @@ void fillTestData(Cruise cruises[], int &currentCruisesCount) {
     vector<string> route2{"Варна", "Рим", "Ню Йорк", "Флорида", "Лос Анджелис", "Варна"};
     vector<string> route3{"Пекин", "Токио", "Пхенян", "Пекин"};
     vector<string> route4{"Бриджтаун", "Розо", "Тортола", "Сейнт Джоунс", "Сен Маартен", "Бриджтаун"};
+    vector<string> route5{"Хамбург", "Северен Атлантически океан"};
 
-    Ship symphonyOfTheSeas{"Symphony of the Seas", "Rob Hempstead", {2499.99, 1500}, {1499.99, 3500}};
-    Ship harmonyOfTheSeas{"Harmony of the Seas", "Johnny Faevelen", {2249.99, 1400}, {1249.99, 3000}};
-    Ship oasisOfTheSeas{"Oasis of the Seas", "Thore Thorolvsen", {1999.99, 1000}, {999.99, 2500}};
-    Ship allureOfTheSeas{"Allure of the Seas", "Hernan Zini", {1749.99, 900}, {749.99, 2100}};
+    Ship symphonyOfTheSeas{"Symphony of The Seas", "Rob Hempstead", {2499.99, 1500}, {1499.99, 3500}};
+    Ship harmonyOfTheSeas{"Harmony of The Seas", "Johnny Faevelen", {2249.99, 1400}, {1249.99, 3000}};
+    Ship oasisOfTheSeas{"Oasis of The Seas", "Thore Thorolvsen", {1999.99, 1000}, {999.99, 2500}};
+    Ship allureOfTheSeas{"Allure of The Seas", "Hernan Zini", {1749.99, 900}, {749.99, 2100}};
+    Ship bismarck{"Bismarck", "Otto Ernst Lindemann", {4999.99, 103}, {9.99, 1962}};
 
     cruises[currentCruisesCount++] = {route1, symphonyOfTheSeas, {14, 2, 2021}, {14, 3, 2022}};
     cruises[currentCruisesCount++] = {route2, harmonyOfTheSeas, {7, 1, 2022}, {14, 1, 2022}};
+    cruises[currentCruisesCount++] = {route2, bismarck, {14, 2, 2021}, {14, 1, 2022}};
     cruises[currentCruisesCount++] = {route3, oasisOfTheSeas, {5, 8, 2022}, {15, 8, 2022}};
     cruises[currentCruisesCount++] = {route4, allureOfTheSeas, {3, 3, 2022}, {10, 3, 2022}};
     cruises[currentCruisesCount++] = {route2, allureOfTheSeas, {5, 7, 2022}, {10, 7, 2022}};
+    cruises[currentCruisesCount++] = {route5, bismarck, {1, 2, 1939}, {27, 5, 1940}};
 }
 
 bool cruisesExist(int &currentCruisesCount) {
@@ -461,14 +576,72 @@ bool cruiseExists(int &currentCruisesCount, int &cruise) {
     return true;
 }
 
-void getCurrentDate(int &day, int &month, int &year) {
-    time_t currentTime;
-    struct tm *localTime;
+int compareDates(const Date &date1, const Date &date2) {
+    if (date1.year < date2.year)
+        return 1;
+    else if (date1.year > date2.year)
+        return -1;
+    if (date1.year == date2.year && date1.month < date2.month)
+        return 1;
+    if (date1.year == date2.year && date1.month > date2.month)
+        return -1;
+    if (date1.year == date2.year && date1.month == date2.month && date1.day < date2.day)
+        return 1;
+    if (date1.year == date2.year && date1.month == date2.month && date1.day > date2.day)
+        return -1;
 
-    time(&currentTime);
-    localTime = localtime(&currentTime);
+    return 0;
+}
 
-    day = localTime->tm_mday;
-    month = localTime->tm_mon + 1;
-    year = localTime->tm_year + 1900;
+int compareNames(string &str1, string &str2) {
+    for (int i = 0; i < str1.size(); i++) {
+        if (str1[i] > str2[i]) return 1;
+        else if (str1[i] < str2[i]) return 0;
+    }
+    return 0;
+}
+
+bool periodCheck(Date start, Date end, const Cruise &cruise) {
+    return compareDates(cruise.startDate, start) <= 0 && compareDates(cruise.endDate, end) >= 0;
+}
+
+Date inputDate(string &dateInput) {
+    Date validation{};
+    try {
+        validation.day = stoi(dateInput.substr(0, 2));
+        validation.month = stoi(dateInput.substr(3, 2));
+        validation.year = stoi(dateInput.substr(6, 4));
+    } catch (exception &err) {
+        printf("Невалиден формат! Моля въведи дата в този формат [01.01.2022]: ");
+        cin >> dateInput;
+        validation = inputDate(dateInput);
+    }
+
+    while (validation.year < 1900 || validation.year > 2100) {
+        printf("Моля въведи година между 1900 и 2100: ");
+        cin >> validation.year;
+    }
+
+    while (validation.month < 1 || validation.month > 12) {
+        printf("Моля въведи месец между 1 и 12: ");
+        cin >> validation.month;
+    }
+
+    int maxDays;
+    if (validation.month != 2) {
+        if (validation.month < 8) {
+            maxDays = (validation.month % 2 == 0) ? 30 : 31;
+        } else {
+            maxDays = (validation.month % 2 == 0) ? 31 : 30;
+        }
+    } else {
+        maxDays = (validation.year % 4 == 0 && (validation.year % 100 != 0 || validation.year % 400 == 0)) ? 28 : 27;
+    }
+
+    while (validation.day < 1 || validation.day > maxDays) {
+        printf("Моля въведи ден между 1 и %d: ", maxDays);
+        cin >> validation.day;
+    }
+
+    return validation;
 }
