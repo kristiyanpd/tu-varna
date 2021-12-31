@@ -38,6 +38,8 @@ const int MAX_CRUISES = 100;
 /////////// Prototypes ///////////
 int addCruise(Cruise cruises[], int &currentCruisesCount);
 
+void addCruiseUser(Cruise cruises[], int &currentCruisesCount);
+
 void addCruises(Cruise cruises[], int &currentCruisesCount);
 
 void editCruise(Cruise cruises[], int &currentCruisesCount, Date current);
@@ -109,7 +111,7 @@ int main() {
                 fillTestData(cruises, currentCruisesCount);
                 break;
             case 2:
-                addCruise(cruises, currentCruisesCount);
+                addCruiseUser(cruises, currentCruisesCount);
                 break;
             case 3:
                 addCruises(cruises, currentCruisesCount);
@@ -247,6 +249,15 @@ int addCruise(Cruise cruises[], int &currentCruisesCount) {
     currentCruisesCount++;
 
     return 0;
+}
+
+void addCruiseUser(Cruise cruises[], int &currentCruisesCount) {
+    char answer;
+    do {
+        addCruise(cruises, currentCruisesCount);
+        printf("Искате ли да добавите още круизи [y/n]: ");
+        cin >> answer;
+    } while (answer == 'y');
 }
 
 void addCruises(Cruise cruises[], int &currentCruisesCount) {
