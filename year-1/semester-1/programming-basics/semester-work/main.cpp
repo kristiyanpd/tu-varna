@@ -3,7 +3,9 @@
 #include <string>
 #include <algorithm>
 #include <vector>
+#include <fstream>
 #include <unordered_map>
+#include <iomanip>
 
 using namespace std;
 
@@ -33,7 +35,6 @@ struct Cruise {
 
 /////////// Constants ///////////
 const int MAX_CRUISES = 100;
-
 
 /////////// Prototypes ///////////
 int addCruise(Cruise cruises[], int &currentCruisesCount);
@@ -71,7 +72,14 @@ int compareNames(string &str1, string &str2);
 
 bool periodCheck(Date start, Date end, const Cruise &cruise);
 
+bool isFreeShipCaptain(Cruise cruises[], int &currentCruisesCount, Date startDate, Date endDate, const string &shipName,
+                       const string &captainName);
+
 Date inputDate(string &dateInput);
+
+void saveCruisesTextFile(Cruise cruises[], int &currentCruisesCount);
+
+void readCruisesTextFile(Cruise cruises[], int &currentCruisesCount);
 
 int main() {
     setlocale(LC_ALL, "BG");
@@ -101,6 +109,8 @@ int main() {
         printf("9. Извеждане на пътуване с най-много пътници.\n");
         printf("10. Извеждане на кораб с най-много круизи.\n");
         printf("11. Одит на морските пътувания.\n");
+        printf("12. Запазване на круизите във файл.\n");
+        printf("13. Четене на круизите от файл.\n");
         printf("Избрана опция: ");
 
         cin >> selected;
@@ -165,6 +175,12 @@ int main() {
                     }
                 } while (selectedSubmenu != 0);
                 break;
+            case 12:
+                saveCruisesTextFile(cruises, currentCruisesCount);
+                break;
+            case 13:
+                readCruisesTextFile(cruises, currentCruisesCount);
+                break;
             default:
                 printf("Невалидна опция!\n");
         }
@@ -179,6 +195,7 @@ int addCruise(Cruise cruises[], int &currentCruisesCount) {
     }
 
     printf("============{ ДОБАВЯНЕ НА КРУИЗ %d }============\n", currentCruisesCount + 1);
+    Cruise newCruise;
 
     // Въвеждане на дестинации
     printf("==={ ВЪВЕЖДАНЕ НА ДЕСТИНАЦИИ }===\n");
@@ -191,7 +208,7 @@ int addCruise(Cruise cruises[], int &currentCruisesCount) {
         }
         cin.ignore();
         getline(cin, destination);
-        cruises[currentCruisesCount].route.push_back(destination);
+        newCruise.route.push_back(destination);
 
         char final = 0;
         while (final != 'y' && final != 'n') {
@@ -209,42 +226,51 @@ int addCruise(Cruise cruises[], int &currentCruisesCount) {
     printf("Въведи дата потегляне [формат: 01.01.2022]: ");
     string startDate;
     cin >> startDate;
-    cruises[currentCruisesCount].startDate = inputDate(startDate);
+    newCruise.startDate = inputDate(startDate);
 
     // Въвеждане на дата връщане
     printf("Въведи дата връщане   [формат: 01.01.2022]: ");
     string endDate;
     cin >> endDate;
-    cruises[currentCruisesCount].endDate = inputDate(endDate);
+    newCruise.endDate = inputDate(endDate);
 
     printf("==={ ВЪВЕЖДАНЕ НА ИНФОРМАЦИЯ ЗА КОРАБА }===\n");
 
     // Въвеждане на име на кораб
     printf("Въведи име на кораб: ");
     cin.ignore();
-    getline(cin, cruises[currentCruisesCount].ship.name);
+    getline(cin, newCruise.ship.name);
 
     // Въвеждане на име на кипитан на кораб
     printf("Въведи име на капитан на кораб: ");
-    getline(cin, cruises[currentCruisesCount].ship.captainName);
+    getline(cin, newCruise.ship.captainName);
+
+    // Проверяване дали корабът или капитанът вече са заети
+    if (currentCruisesCount > 0 &&
+        !isFreeShipCaptain(cruises, currentCruisesCount, newCruise.startDate, newCruise.endDate, newCruise.ship.name,
+                           newCruise.ship.captainName)) {
+        printf("Корабът или капинанът вече са заети!\n");
+        return 0;
+    }
 
     printf("==={ ВЪВЕЖДАНЕ НА ИНФОРМАЦИЯ ЗА КЛАСИТЕ ПЪТНИЦИ }===\n");
 
     printf("==={ 1-ВА КЛАСА }===\n");
     printf("Въведи цена: ");
-    cin >> cruises[currentCruisesCount].ship.firstClass.price;
+    cin >> newCruise.ship.firstClass.price;
 
     printf("Въведи брой пътници: ");
-    cin >> cruises[currentCruisesCount].ship.firstClass.passengers;
+    cin >> newCruise.ship.firstClass.passengers;
 
     printf("==={ 2-РА КЛАСА }===\n");
     printf("Въведи цена: ");
-    cin >> cruises[currentCruisesCount].ship.secondClass.price;
+    cin >> newCruise.ship.secondClass.price;
 
     printf("Въведи брой пътници: ");
-    cin >> cruises[currentCruisesCount].ship.secondClass.passengers;
+    cin >> newCruise.ship.secondClass.passengers;
 
     // Завършване на добавянето
+    cruises[currentCruisesCount] = newCruise;
     printf("============{ УСПЕШНО ДОБАВЯНЕ НА КРУИЗ %d }============\n", currentCruisesCount);
     currentCruisesCount++;
 
@@ -286,7 +312,9 @@ void editCruise(Cruise cruises[], int &currentCruisesCount, Date current) {
         return;
     }
 
+    Cruise oldCruise = cruises[cruise];
     printf("============{ РЕДАКЦИЯ НА КРУИЗ %d }============\n", cruise);
+    Cruise newCruise;
     char answer;
 
     printf("Искате ли да редактирате датата на потегляне? [y/n] ");
@@ -295,7 +323,9 @@ void editCruise(Cruise cruises[], int &currentCruisesCount, Date current) {
         printf("Въведи дата потегляне [формат: 01.01.2022]: ");
         string startDate;
         cin >> startDate;
-        cruises[currentCruisesCount].startDate = inputDate(startDate);
+        newCruise.startDate = inputDate(startDate);
+    } else {
+        newCruise.startDate = oldCruise.startDate;
     }
 
     printf("Искате ли да редактирате датата на връщане? [y/n] ");
@@ -304,7 +334,19 @@ void editCruise(Cruise cruises[], int &currentCruisesCount, Date current) {
         printf("Въведи нова дата връщане [формат: 01.01.2022]: ");
         string endDate;
         cin >> endDate;
-        cruises[currentCruisesCount].endDate = inputDate(endDate);
+        newCruise.endDate = inputDate(endDate);
+    } else {
+        newCruise.endDate = oldCruise.endDate;
+    }
+
+    // Проверяване дали корабът или капитанът вече са заети
+    if (((compareDates(newCruise.startDate, oldCruise.startDate) != 0) ||
+         (compareDates(newCruise.endDate, oldCruise.endDate) != 0))
+        && currentCruisesCount > 0
+        && !isFreeShipCaptain(cruises, currentCruisesCount, newCruise.startDate, newCruise.endDate, newCruise.ship.name,
+                              newCruise.ship.captainName)) {
+        printf("Корабът или капинанът вече са заети!\n");
+        return;
     }
 
     printf("Искате ли да редактирате името на кораба? [y/n] ");
@@ -313,8 +355,8 @@ void editCruise(Cruise cruises[], int &currentCruisesCount, Date current) {
         cin.ignore();
         do {
             printf("Въведи ново име на кораба: ");
-            getline(cin, cruises[cruise].ship.name);
-        } while (cruises[cruise].ship.name[0] == '\0');
+            getline(cin, newCruise.ship.name);
+        } while (newCruise.ship.name[0] == '\0');
     }
 
     printf("Искате ли да редактирате името на капитана на кораба? [y/n] ");
@@ -323,33 +365,35 @@ void editCruise(Cruise cruises[], int &currentCruisesCount, Date current) {
         cin.ignore();
         do {
             printf("Въведи ново име на капитана на кораба: ");
-            getline(cin, cruises[cruise].ship.captainName);
-        } while (cruises[cruise].ship.captainName[0] == '\0');
+            getline(cin, newCruise.ship.captainName);
+        } while (newCruise.ship.captainName[0] == '\0');
     }
 
     printf("Искате ли да редактирате първа класа? [y/n] ");
     cin >> answer;
     if (answer == 'y') {
         printf("Въведи нова цена: ");
-        cin >> cruises[cruise].ship.firstClass.price;
+        cin >> newCruise.ship.firstClass.price;
         printf("Въведи нов брой пътници: ");
-        cin >> cruises[cruise].ship.firstClass.passengers;
+        cin >> newCruise.ship.firstClass.passengers;
     }
 
     printf("Искате ли да редактирате втора класа? [y/n] ");
     cin >> answer;
     if (answer == 'y') {
         printf("Въведи нова цена: ");
-        cin >> cruises[cruise].ship.secondClass.price;
+        cin >> newCruise.ship.secondClass.price;
         printf("Въведи нов брой пътници: ");
-        cin >> cruises[cruise].ship.secondClass.passengers;
+        cin >> newCruise.ship.secondClass.passengers;
     }
+
+    cruises[cruise] = newCruise;
 }
 
 void printCruise(Cruise cruises[], int &currentCruisesCount, int cruise) {
     Cruise current = cruises[cruise];
     printf("============{ КРУИЗ %d }============\n", cruise);
-    printf("Маршрут: ");
+    cout << left << setw(23) << "Маршрут: ";
     int routeSize = (int) current.route.size();
     for (int i = 0; i < routeSize; i++) {
         printf("%s %s", current.route.at(i).c_str(), i < routeSize - 1 ? "-> " : "\n");
@@ -358,10 +402,10 @@ void printCruise(Cruise cruises[], int &currentCruisesCount, int cruise) {
     printf("Дата връщане:   %02d.%02d.%04d\n", current.endDate.day, current.endDate.month, current.endDate.year);
     printf("Име на кораб:   %s\n", current.ship.name.c_str());
     printf("Име на капитан: %s\n", current.ship.captainName.c_str());
-    printf("1-ВА КЛАСА: \tЦЕНА: %g\t\tБРОЙ ПЪТНИЦИ: %d\n", current.ship.firstClass.price,
-           current.ship.firstClass.passengers);
-    printf("2-РА КЛАСА: \tЦЕНА: %g\t\tБРОЙ ПЪТНИЦИ: %d\n", current.ship.secondClass.price,
-           current.ship.secondClass.passengers);
+    cout << left << setw(23) << "1-ВА КЛАСА" << "ЦЕНА: " << setw(10) << current.ship.firstClass.price
+         << "БРОЙ ПЪТНИЦИ: " << current.ship.firstClass.passengers << endl;
+    cout << left << setw(23) << "2-РА КЛАСА" << "ЦЕНА: " << setw(10) << current.ship.secondClass.price
+         << "БРОЙ ПЪТНИЦИ: " << current.ship.secondClass.passengers << endl;
 }
 
 void printFoundCruise(Cruise cruises[], int &currentCruisesCount) {
@@ -587,6 +631,7 @@ bool cruiseExists(int &currentCruisesCount, int &cruise) {
     return true;
 }
 
+// Връща -1 ако лявата дата е по-късна / 0 ако датите са еднакви / +1 ако дясната дата е по-късна
 int compareDates(const Date &date1, const Date &date2) {
     if (date1.year < date2.year)
         return 1;
@@ -616,13 +661,32 @@ bool periodCheck(Date start, Date end, const Cruise &cruise) {
     return compareDates(cruise.startDate, start) <= 0 && compareDates(cruise.endDate, end) >= 0;
 }
 
+bool isFreeShipCaptain(Cruise cruises[], int &currentCruisesCount, Date startDate, Date endDate, const string &shipName,
+                       const string &captainName) {
+    bool areFree;
+    for (int i = 0; i < currentCruisesCount; i++) {
+        Cruise current = cruises[i];
+        if (current.ship.name == shipName || current.ship.captainName == captainName) {
+            if ((compareDates(current.startDate, startDate) > 0 && compareDates(current.startDate, endDate) > 0) ||
+                (compareDates(current.startDate, startDate) < 0 && compareDates(current.startDate, endDate) < 0)) {
+                areFree = true;
+                continue;
+            }
+            areFree = false;
+            break;
+        }
+    }
+    return areFree;
+}
+
 Date inputDate(string &dateInput) {
     Date validation{};
     try {
         validation.day = stoi(dateInput.substr(0, 2));
         validation.month = stoi(dateInput.substr(3, 2));
         validation.year = stoi(dateInput.substr(6, 4));
-    } catch (exception &err) {
+    }
+    catch (exception &err) {
         printf("Невалиден формат! Моля въведи дата в този формат [01.01.2022]: ");
         cin >> dateInput;
         validation = inputDate(dateInput);
@@ -655,4 +719,99 @@ Date inputDate(string &dateInput) {
     }
 
     return validation;
+}
+
+void saveCruisesTextFile(Cruise cruises[], int &currentCruisesCount) {
+    if (!cruisesExist(currentCruisesCount)) return;
+
+    printf("============={ ФАЙЛОВА ОПЕРАЦИЯ }=============\n");
+
+    fstream file;
+    file.open("cruises.dat", ios::out);
+
+    if (file.fail()) {
+        printf("Възникна проблем при отварянето на файла!\n");
+        return;
+    }
+
+    file.setf(ios::fixed);
+    file.setf(ios::showpoint);
+    file.precision(2);
+
+    for (int i = 0; i < currentCruisesCount; i++) {
+        Cruise current = cruises[i];
+        file << current.ship.name << endl;
+        file << current.ship.captainName << endl;
+        file << current.ship.firstClass.price << endl;
+        file << current.ship.firstClass.passengers << endl;
+        file << current.ship.secondClass.price << endl;
+        file << current.ship.secondClass.passengers << endl;
+        file << current.startDate.day << endl;
+        file << current.startDate.month << endl;
+        file << current.startDate.year << endl;
+        file << current.endDate.day << endl;
+        file << current.endDate.month << endl;
+        file << current.endDate.year << endl;
+        for (int j = 0; j < current.route.size(); j++) {
+            file << current.route[j];
+            if (j < current.route.size() - 1) file << ", ";
+            else file << "\n";
+        }
+
+        if (i < currentCruisesCount - 1) file << "\n";
+    }
+
+    file.close();
+    printf("Успешно запазихте круизите!\n");
+}
+
+void readCruisesTextFile(Cruise cruises[], int &currentCruisesCount) {
+    printf("============={ ФАЙЛОВА ОПЕРАЦИЯ }=============\n");
+
+    fstream file;
+    file.open("cruises.dat", ios::in);
+
+    if (file.fail()) {
+        printf("Възникна проблем при отварянето на файла!\n");
+        return;
+    }
+
+    while (!file.eof()) {
+        Cruise newCruise;
+
+        getline(file, newCruise.ship.name);
+        getline(file, newCruise.ship.captainName);
+        file >> newCruise.ship.firstClass.price;
+        file >> newCruise.ship.firstClass.passengers;
+        file >> newCruise.ship.secondClass.price;
+        file >> newCruise.ship.secondClass.passengers;
+        file >> newCruise.startDate.day;
+        file >> newCruise.startDate.month;
+        file >> newCruise.startDate.year;
+        file >> newCruise.endDate.day;
+        file >> newCruise.endDate.month;
+        file >> newCruise.endDate.year;
+        file.ignore();
+
+        string routeStr;
+        getline(file, routeStr);
+        vector<string> routes;
+        string temp;
+        for (int i = 0; i < routeStr.size(); i++) {
+            if (routeStr[i] == ',') {
+                routes.push_back(temp);
+                temp = "";
+                i++;
+            } else temp.push_back(routeStr[i]);
+        }
+        routes.push_back(temp);
+
+        file.ignore();
+
+        newCruise.route = routes;
+        cruises[currentCruisesCount++] = newCruise;
+    }
+
+    file.close();
+    printf("Успешно прочетохте круизите!\n");
 }
